@@ -300,14 +300,44 @@ project-root/
 
 # 🚀 12. How to Run
 
-## Step 1: Install dependencies
+
 ```bash
-pip install -r requirements.txt
-Step 2: Run EDA
-python eda.py
-Step 3: Train Model + Generate Predictions
-python model_training.py
-🔥 13. Key Highlights
+STEP 1: First go to the project folder
+cd "C:\Users\rootuser\OneDrive\Desktop\churn_project"
+
+Wait until the terminal shows the project path again, then run STEP 2.
+
+STEP 2: Run preprocessing and EDA first
+python notebooks\eda.py
+
+Wait until it finishes and prints: Saved processed dataset
+Then run STEP 3.
+
+STEP 3: Run model training
+python notebooks\model_training.py
+
+Wait until it finishes and saves: models/best_model.pkl
+Then run STEP 4.
+
+STEP 4: Check final best model metrics
+type outputs\final_metrics.json
+
+Then run STEP 5.
+
+STEP 5: Check all model comparison results
+type outputs\model_comparison.csv
+
+Then run STEP 6.
+
+STEP 6: Test if saved model loads and predicts correctly
+python -c "import joblib,pandas as pd; model=joblib.load('models/best_model.pkl'); df=pd.read_csv('data/ChurnZero_dataset_v1.csv').drop(columns=['customer_id','churn']).head(1); df['total_loan_products']=df['personal_loan_flag']+df['home_loan_flag']+df['auto_loan_flag']; df['total_products_owned']=df['savings_account_flag']+df['current_account_flag']+df['credit_card_flag']+df['investment_product_flag']+df['insurance_product_flag']; df['engagement_gap']=df['mobile_app_login_count']-df['last_login_days']; df['credit_utilization_change']=df['credit_utilization_6m_avg']-df['credit_utilization_3m_avg']; df['complaint_severity']=df['total_complaints']*df['unresolved_complaint_count']; df['transaction_drop_indicator']=df['balance_decline_percentage']*df['account_inactive_days']; print('Prediction:',model.predict(df)); print('Probability:',model.predict_proba(df)[:,1])"
+
+STEP 7: Confirm model, graph, and output files exist
+dir models
+dir graphs
+dir outputs
+```
+# 🔥 13. Key Highlights
 End-to-end ML pipeline (EDA → Training → Prediction)
 Feature engineering for behavioral intelligence
 Multi-model training system
@@ -315,7 +345,9 @@ F2-score optimized evaluation strategy
 Automated best model selection
 Production-ready ML workflow
 Threshold tuning for real-world performance
-📌 14. Conclusion
+
+
+# 📌 14. Conclusion
 
 This project demonstrates a complete machine learning system for customer churn prediction with strong emphasis on:
 
