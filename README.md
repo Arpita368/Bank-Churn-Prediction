@@ -280,7 +280,7 @@ This system enables banks to:
 
 # 🏗️ 11. Project Structure
 
-
+```bash
 project-root/
 │
 ├── data/
@@ -294,7 +294,7 @@ project-root/
 ├── eda.py
 ├── model_training.py
 ├── README.md
-
+```
 
 ---
 
