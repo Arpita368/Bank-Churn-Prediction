@@ -1,222 +1,191 @@
-🏦 Banking Customer Churn Prediction System
-<div align="center">
+🏦 Customer Churn Prediction System (End-to-End ML Pipeline)
 
+A complete machine learning pipeline for predicting customer churn in a banking environment. The project includes exploratory data analysis (EDA), feature engineering, model training, evaluation, and prediction generation with a strong focus on recall and F2-score optimization to correctly identify high-risk churn customers.
 
+📌 Problem Statement
 
+Banks lose significant revenue when customers stop using their services. The goal of this project is to:
 
-
-
-
-
-
-
-
-
-🚀 End-to-End Machine Learning System for Predicting Banking Customer Churn
-<img src="https://img.shields.io/badge/Business%20Impact-High%20Revenue%20Retention-blue?style=for-the-badge" /> <img src="https://img.shields.io/badge/Goal-Customer%20Retention%20Optimization-important?style=for-the-badge" /> </div>
-📌 Project Overview
-
-This project was built for the ChurnZero 26 Data Science Hackathon.
-
-It is a production-style machine learning pipeline designed to predict whether a banking customer is likely to churn based on:
-
-Behavioral patterns
-Financial activity
-Engagement metrics
-Service interactions
-
-Unlike standard ML projects, this system prioritizes:
-
-🎯 Recall over Accuracy
-💼 Business impact over metrics
-🔍 Early churn detection
-⚙️ Real-world deployment readiness
-🎯 Business Problem Statement
-
-Customer churn leads to major financial losses for banks:
-
-📉 Loss of revenue streams
-💳 Drop in product usage
-🧾 Reduced customer lifetime value
-📊 Increased acquisition cost
-💡 Objective:
-
-Predict churn early so banks can take proactive retention actions before customers leave.
-
+Predict whether a customer will churn (1) or stay (0)
+Identify high-risk customers early
+Reduce churn by improving retention strategies
 📊 Dataset Overview
-Attribute	Value
-Total Customers	10,000
-Features	14
-Target	Churn (Exited)
-Type	Binary Classification
-🧠 Key Business Insights (EDA Results)
-📉 Behavioral Insights
-Low digital engagement → Higher churn risk
-High inactivity (>90 days) → Strong churn signal
-Low credit utilization → Passive customers likely to churn
-High complaints → Direct churn indicator
-Low satisfaction scores → Early warning signal
-💰 Financial Insights
-Low balance customers churn more frequently
-High-balance customers contribute disproportionately to revenue
-Credit usage patterns strongly influence retention
-👤 Demographic Insights
-Age distribution is NOT a strong churn factor
-Majority customers are 35–55 years old
-Demographics alone cannot predict churn
-🔗 Correlation Insights
-Weak linear correlation with churn
-No single dominant feature
-Churn depends on multi-variable interaction patterns
-📊 Visual Insights
-📌 Churn Distribution
-Imbalanced dataset (~20% churn rate)
-📌 Feature Relationships
-Satisfaction ↓ → Churn ↑
-Complaints ↑ → Churn ↑
-Balance ↓ → Churn ↑
-📌 Correlation Heatmap
-Low multicollinearity
-Strong feature clusters (income, balance, transactions)
-⚠️ Critical Insight: Model Leakage Warning
-🚨 Model Performance Concern
+Dataset Name: ChurnZero Dataset v1
+Records: ~10,000 customers
+Target Variable: churn
+0 → Retained Customer
+1 → Churned Customer
+Key Features
+Demographics (Age, etc.)
+Financial behavior (Balance, Credit Utilization)
+Engagement metrics (Login activity, inactive days)
+Complaints & satisfaction scores
+Product ownership flags
+🧠 Project Workflow
+1️⃣ Exploratory Data Analysis (EDA)
 
-The model achieved:
+Performed in eda.py
 
-ROC-AUC ≈ 1.0
-Near-perfect classification
-Extremely low error rate
-⚠️ Interpretation:
+Data inspection (shape, missing values, duplicates)
+Target distribution analysis
+Feature-wise churn comparison using:
+Boxplots (Age, Balance, Engagement, etc.)
+Histograms (Age, Balance distributions)
+Correlation heatmap using encoded features
+Saved all visualizations in /graphs
+2️⃣ Feature Engineering
 
-This is a strong indicator of data leakage or overfitting
+Performed in model_training.py
 
-Possible causes:
+New engineered features:
 
-Target-related features included accidentally
-Post-churn information leakage
-Overly predictive engineered features
-📌 Action Required:
+total_loan_products
+total_products_owned
+engagement_gap
+credit_utilization_change
+complaint_severity
+transaction_drop_indicator
 
-Feature audit must ensure:
+These features improve churn signal detection by capturing behavioral patterns.
 
-Only pre-churn variables are used
-No future-state information is included
-🏗️ Machine Learning Pipeline
-📥 Data Loading
-      ↓
-📊 Exploratory Data Analysis
-      ↓
-🧹 Data Cleaning & Preprocessing
-      ↓
-🔧 Feature Encoding & Scaling
-      ↓
-🤖 Model Training (Multiple Models)
-      ↓
-⚙️ Hyperparameter Tuning
-      ↓
-🎯 Threshold Optimization (F2 Focus)
-      ↓
-📈 Evaluation (Recall, ROC-AUC, F2)
-      ↓
-📊 Feature Importance Analysis
-      ↓
-📦 Model Export
-🤖 Models Used
+3️⃣ Data Preprocessing Pipeline
+Numerical features:
+Median imputation
+Standard scaling
+Categorical features:
+Most frequent imputation
+One-hot encoding
+Combined using ColumnTransformer
+Fully wrapped inside a Scikit-learn Pipeline
+4️⃣ Model Training
+
+Multiple models evaluated:
+
 Logistic Regression
 Decision Tree
+K-Nearest Neighbors
+Gaussian Naive Bayes
+SVM
+MLP Neural Network
 Random Forest
-Gradient Boosting (Final Model)
-Ensemble Methods
-🏆 Final Model
-🌟 Gradient Boosting Classifier
+Bagging Classifier
+Extra Trees
+Gradient Boosting
+AdaBoost
+Histogram Gradient Boosting
+5️⃣ Evaluation Strategy
 
-Selected based on:
+Instead of accuracy, the project focuses on:
 
-Highest Recall
-Best F2-score
-Strong ROC-AUC
-Stability across validation
-📈 Model Performance
-Metric	Score
-Accuracy	~0.75
-Precision	~0.44
-Recall	~0.83
-F1 Score	~0.57
-F2 Score	~0.70
-ROC-AUC	~0.87
-🔥 Key Feature Drivers
-🚀 Top Predictors
-Customer Lifetime Value
-Campaign Response Time
-Satisfaction Score
-Account Inactivity
-Complaint Count
-⚙️ Medium Impact Features
-Service Requests
-Relationship Manager Interaction
-Transaction Behavior
-📉 Low Impact Features
-Age
-Gender
-Geography (low predictive power alone)
-💼 Business Impact
+🎯 Recall (catch all churners)
+🎯 F2-Score (recall-weighted metric)
+ROC-AUC
+PR-AUC
+Precision (secondary metric)
 
-This system enables banks to:
+A custom threshold of:
 
-🔍 Identify churn risk early
-📉 Reduce customer attrition
-💰 Protect high-value customers
-📞 Improve retention campaigns
-📊 Optimize marketing targeting
-📌 Core Takeaways
-Churn is behavior-driven, not demographic-driven
-Engagement drop is the earliest warning signal
-Financial inactivity strongly correlates with churn
-No single feature defines churn → multi-factor problem
-High-value customers require priority retention
-🚀 Future Scope
-🔄 Real-time churn prediction API (FastAPI)
-📊 Interactive Streamlit dashboard
-⚡ XGBoost / LightGBM optimization
-🧠 SHAP explainability integration
-📈 Time-series customer behavior modeling
-💬 NLP sentiment analysis from support data
-🤖 AI-driven personalized retention engine
-🛠️ Tech Stack
-Python 🐍
-Pandas & NumPy
-Scikit-learn
-Matplotlib & Seaborn
-Joblib
-📂 Project Structure
-churn_project/
+Threshold = 0.35
+
+is used to improve churn detection sensitivity.
+
+6️⃣ Best Model Selection
+Models are compared using F2-score
+Best-performing model is automatically selected
+Saved as:
+models/best_model.pkl
+📈 Outputs Generated
+📊 Graphs (/graphs)
+Churn distribution
+Age vs churn
+Balance vs churn
+Engagement vs churn
+Complaints vs churn
+Satisfaction vs churn
+Credit utilization vs churn
+Inactive days vs churn
+Correlation heatmap
+ROC curve
+Confusion matrix
+Feature importance plot
+📁 Files (/outputs)
+model_comparison.csv → Model performance comparison
+feature_importance.csv → Feature ranking
+final_metrics.json → Final evaluation metrics
+classification_report.txt → Full report
+ChurnZero_Team_Predictions.csv → Test predictions
+🤖 Model Artifact
+models/best_model.pkl → Trained production-ready model
+🏆 Final Metrics (Best Model)
+
+Tracked metrics:
+
+Accuracy
+Precision
+Recall
+F1 Score
+F2 Score (primary metric)
+ROC-AUC
+PR-AUC
+🧪 Prediction Output Format
+customer_id	churn_prediction	churn_probability
+1001	1	0.87
+1002	0	0.12
+⚙️ Tech Stack
+Programming Language
+Python 3.10+
+Libraries
+pandas
+numpy
+seaborn
+matplotlib
+scikit-learn
+joblib
+🏗️ Project Structure
+project-root/
 │
 ├── data/
-├── notebooks/
-├── models/
+│   ├── ChurnZero_Dataset_v1.csv
+│   └── ChurnZero_Test_v1.csv
+│
 ├── graphs/
+│   ├── churn_distribution.png
+│   ├── roc_curve.png
+│   ├── confusion_matrix.png
+│   └── feature_importance.png
+│
+├── models/
+│   └── best_model.pkl
+│
 ├── outputs/
+│   ├── model_comparison.csv
+│   ├── feature_importance.csv
+│   ├── final_metrics.json
+│   ├── classification_report.txt
+│   └── ChurnZero_Team_Predictions.csv
+│
+├── eda.py
+├── model_training.py
 └── README.md
-▶️ How to Run
-# Step 1
-python notebooks/eda.py
+🚀 How to Run
+1. Install dependencies
+pip install -r requirements.txt
+2. Run EDA
+python eda.py
+3. Train model & generate predictions
+python model_training.py
+💡 Key Highlights
+End-to-end ML pipeline (EDA → Training → Prediction)
+Strong focus on recall optimization for churn detection
+Feature engineering for behavioral intelligence
+Automated model comparison system
+Production-ready pipeline with saved artifacts
+Threshold tuning for real-world business impact
+📌 Business Impact
 
-# Step 2
-python notebooks/model_training.py
-📊 Example Prediction
-Prediction: 1 (Churn)
-Probability: 0.31
-🧾 Conclusion
+This system helps banks:
 
-This project demonstrates a real-world, end-to-end churn prediction system that combines:
-
-Strong machine learning pipeline
-Business-driven insights
-Early warning detection system
-Production-style workflow
-
-The key insight: churn is not random — it is behaviorally predictable when engagement signals are tracked properly.
-
-<div align="center">
-⭐ If you like this project, don’t forget to star it ⭐
-</div>
+Identify potential churners early
+Improve customer retention strategies
+Reduce revenue loss
+Target high-risk customers with offers and interventions
