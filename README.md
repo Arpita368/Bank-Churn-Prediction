@@ -290,9 +290,9 @@ project-root/
 ├── graphs/
 ├── models/
 ├── outputs/
-│
-├── eda.py
-├── model_training.py
+├── notebooks/
+│ ├── eda.py
+│ ├── model_training.py
 ├── README.md
 ```
 
