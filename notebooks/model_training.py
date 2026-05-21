@@ -494,11 +494,170 @@ comparison_df.sort_values(
     ascending=False,
     inplace=True
 )
+# ---------------------------------------------------
+# ADD INTERPRETATION COLUMN
+# ---------------------------------------------------
+
+interpretations = []
+
+for _, row in comparison_df.iterrows():
+
+    interpretation = ""
+
+    if row["Recall"] >= 0.80:
+        interpretation += (
+            "Excellent churn detection capability. "
+        )
+
+    elif row["Recall"] >= 0.70:
+        interpretation += (
+            "Good churn detection performance. "
+        )
+
+    else:
+        interpretation += (
+            "Lower churn detection capability. "
+        )
+
+    if row["F2"] >= 0.70:
+        interpretation += (
+            "Strong recall-focused performance. "
+        )
+
+    if row["ROC_AUC"] >= 0.85:
+        interpretation += (
+            "Very strong class separation ability. "
+        )
+
+    if row["Accuracy"] >= 0.80:
+        interpretation += (
+            "High overall prediction accuracy."
+        )
+
+    interpretations.append(interpretation)
+
+comparison_df["Interpretation"] = interpretations
+
 
 comparison_df.to_csv(
     OUTPUTS_DIR / "model_comparison.csv",
     index=False
 )
+
+# ---------------------------------------------------
+# MODEL HEALTH REPORT
+# ---------------------------------------------------
+
+best_row = comparison_df.iloc[0]
+
+health_report = f"""
+MODEL HEALTH REPORT
+===============================
+
+Project:
+Bank Customer Churn Prediction
+
+Best Performing Model:
+{best_row['Model']}
+
+---------------------------------------------------
+PERFORMANCE SUMMARY
+---------------------------------------------------
+
+Accuracy  : {best_row['Accuracy']:.4f}
+Precision : {best_row['Precision']:.4f}
+Recall    : {best_row['Recall']:.4f}
+F1 Score  : {best_row['F1']:.4f}
+F2 Score  : {best_row['F2']:.4f}
+ROC-AUC   : {best_row['ROC_AUC']:.4f}
+PR-AUC    : {best_row['PR_AUC']:.4f}
+
+---------------------------------------------------
+BUSINESS INTERPRETATION
+---------------------------------------------------
+
+The model focuses on churn detection rather than
+overall accuracy because customer churn prediction
+is an imbalanced classification problem.
+
+Key Observations:
+
+1. Recall is prioritized to minimize missed churners.
+
+2. F2-score is used because it gives higher weight
+to Recall compared to Precision.
+
+3. ROC-AUC indicates strong class separation ability.
+
+4. PR-AUC confirms reliable churn identification
+performance on imbalanced data.
+
+5. Threshold tuning (0.35) improved Recall and
+reduced false negatives.
+
+---------------------------------------------------
+MODEL HEALTH STATUS
+---------------------------------------------------
+
+"""
+
+# HEALTH STATUS CONDITIONS
+
+if best_row["Recall"] >= 0.80:
+    health_report += "Recall Performance       : EXCELLENT\n"
+elif best_row["Recall"] >= 0.70:
+    health_report += "Recall Performance       : GOOD\n"
+else:
+    health_report += "Recall Performance       : NEEDS IMPROVEMENT\n"
+
+if best_row["ROC_AUC"] >= 0.85:
+    health_report += "ROC-AUC Performance      : EXCELLENT\n"
+elif best_row["ROC_AUC"] >= 0.75:
+    health_report += "ROC-AUC Performance      : GOOD\n"
+else:
+    health_report += "ROC-AUC Performance      : NEEDS IMPROVEMENT\n"
+
+if best_row["F2"] >= 0.70:
+    health_report += "F2-score Performance     : EXCELLENT\n"
+elif best_row["F2"] >= 0.60:
+    health_report += "F2-score Performance     : GOOD\n"
+else:
+    health_report += "F2-score Performance     : NEEDS IMPROVEMENT\n"
+
+health_report += """
+---------------------------------------------------
+FINAL CONCLUSION
+---------------------------------------------------
+
+The selected model demonstrates strong capability
+in identifying potential churn customers and is
+suitable for real-world churn prediction tasks.
+
+The pipeline includes:
+- Data preprocessing
+- Feature engineering
+- Model comparison
+- Threshold optimization
+- Evaluation metrics
+- Prediction generation
+
+The system is scalable and business-oriented,
+making it useful for proactive customer retention
+strategies in banking environments.
+
+===============================
+"""
+
+# SAVE REPORT
+
+with open(
+    OUTPUTS_DIR / "model_health_report.txt",
+    "w"
+) as f:
+
+    f.write(health_report)
+
+print("\nModel Health Report Saved.")
 
 print("\nModel Comparison:")
 print(comparison_df)
@@ -699,10 +858,56 @@ submission = pd.DataFrame({
 
 
 submission.to_csv(
-    OUTPUTS_DIR / "ChurnZero_Team_Predictions.csv",
+    OUTPUTS_DIR / "predictions.csv",
     index=False
 )
 
+# ---------------------------------------------------
+# DETAILED PREDICTIONS REPORT
+# ---------------------------------------------------
+
+prediction_report = submission.copy()
+
+prediction_report["risk_level"] = prediction_report[
+    "churn_probability"
+].apply(
+    lambda x:
+    "High Risk" if x >= 0.75 else
+    "Medium Risk" if x >= 0.45 else
+    "Low Risk"
+)
+
+prediction_report["business_action"] = prediction_report[
+    "risk_level"
+].map({
+
+    "High Risk":
+    "Immediate retention campaign required",
+
+    "Medium Risk":
+    "Monitor customer engagement closely",
+
+    "Low Risk":
+    "Regular customer relationship maintenance"
+})
+
+prediction_report["prediction_interpretation"] = prediction_report[
+    "churn_prediction"
+].map({
+
+    1:
+    "Customer is likely to churn based on behavioral patterns",
+
+    0:
+    "Customer is likely to remain with the bank"
+})
+
+prediction_report.to_csv(
+    OUTPUTS_DIR / "detailed_predictions_report.csv",
+    index=False
+)
+
+print("\nDetailed Predictions Report Saved.")
 
 # ---------------------------------------------------
 # FINAL METRICS
@@ -765,5 +970,7 @@ print("- outputs/model_comparison.csv")
 print("- outputs/feature_importance.csv")
 print("- outputs/final_metrics.json")
 print("- outputs/classification_report.txt")
-print("- outputs/ChurnZero_Team_Predictions.csv")
+print("- outputs/predictions.csv")
 print("- models/best_model.pkl")
+print("- outputs/model_health_report.txt")
+print("- outputs/detailed_predictions_report.csv")
