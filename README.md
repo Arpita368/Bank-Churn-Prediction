@@ -1,274 +1,397 @@
 # 🏦 Customer Churn Prediction System (End-to-End Machine Learning Project)
 
-An advanced end-to-end machine learning system designed to predict **customer churn in a banking environment**. This project covers the complete ML lifecycle including **data analysis, feature engineering, model training, evaluation, threshold tuning, and prediction generation**.
+An advanced end-to-end machine learning system developed to predict **customer churn in a banking environment** using customer behavioral, financial, engagement, and complaint-related data.
 
-The system is optimized not just for accuracy, but for **business impact**, focusing heavily on **recall and F2-score** to ensure maximum identification of potential churn customers.
+This project covers the complete ML lifecycle including:
+
+- Exploratory Data Analysis (EDA)
+- Data Cleaning & Preprocessing
+- Feature Engineering
+- Multiple Model Training
+- Model Evaluation & Comparison
+- Business Cost Analysis
+- Prediction Generation
+- Reporting & Visualization
+
+The system is optimized not only for high accuracy but also for **real-world business impact**, prioritizing **Recall** and **F2-score** to maximize churn detection and minimize customer revenue loss.
 
 ---
 
 # 📌 Problem Statement
 
-Customer churn is one of the most critical problems in the banking sector. Losing customers directly impacts revenue, trust, and long-term growth.
+Customer churn is one of the most critical business problems in the banking sector. Losing customers directly affects:
 
-This project aims to:
+- Revenue
+- Customer trust
+- Long-term business growth
+- Retention costs
 
-- Predict whether a customer will churn (1) or stay (0)
+The objective of this project is to:
+
+- Predict whether a customer will churn (`1`) or stay (`0`)
 - Identify high-risk customers early
-- Help banks take preventive retention actions
-- Reduce revenue loss due to customer attrition
+- Support proactive retention strategies
+- Reduce financial losses due to churn
 
 ---
 
 # 📊 Dataset Overview
 
-The dataset contains structured banking customer information.
+The dataset contains structured banking customer information with behavioral, transactional, financial, and engagement-related features.
 
-- **Dataset Name:** ChurnZero Dataset v1  
-- **Total Records:** ~10,000 customers  
-- **Features:** ~15–30 behavioral + financial attributes  
+### Dataset Information
+
+- **Dataset Name:** ChurnZero Dataset v1
+- **Training Records:** 8,101 customers
+- **Test Records:** 2,026 customers
+- **Features:** 97 attributes
 - **Target Variable:** `churn`
 
 ### Target Definition
+
 - `0 → Retained Customer`
 - `1 → Churned Customer`
 
 ---
 
-# 🧠 Project Architecture
+# 🧠 Project Workflow
 
-
+```text
 Raw Dataset
 ↓
-EDA (eda.py)
+EDA & Visualization
 ↓
-Data Cleaning + Visualization
+Data Cleaning
 ↓
 Feature Engineering
 ↓
-Preprocessing Pipeline (Scaling + Encoding)
+Encoding + Scaling
+↓
+Train-Test Split
 ↓
 Multiple ML Models Training
 ↓
-Model Evaluation (Recall, F2, ROC-AUC)
+Model Evaluation & Comparison
 ↓
 Best Model Selection
 ↓
-Threshold Optimization (0.35)
+Prediction Generation
 ↓
-Final Predictions
-↓
-Saved Outputs + Reports + Model Artifact
-
+Business Reports & Outputs
+```
 
 ---
 
 # 🔍 1. Exploratory Data Analysis (EDA)
 
-Performed in `eda.py`
+Performed in:
 
-### 📌 Steps:
-- Dataset overview (shape, info, statistics)
+```bash
+notebooks/eda.py
+```
+
+### 📌 EDA Tasks
+
+- Dataset overview
+- Shape & column inspection
 - Missing value analysis
-- Duplicate detection
-- Target class distribution (churn vs non-churn)
+- Duplicate row detection
+- Statistical summary
+- Churn distribution analysis
 
-### 📊 Visualizations Generated:
+### 📊 Visualizations Generated
+
 - Customer churn distribution
-- Age vs churn (boxplot)
-- Balance vs churn
+- Age vs churn
+- Average balance vs churn
 - Digital engagement vs churn
 - Complaints vs churn
 - Satisfaction score vs churn
+- Retention offer acceptance vs churn
+- Last login days vs churn
 - Credit utilization vs churn
 - Inactive days vs churn
 - Age distribution
 - Balance distribution
 - Correlation heatmap
 
-All graphs are saved in:
+All graphs are automatically saved in:
 
-
-/graphs
-
-
----
-
-# ⚙️ 2. Feature Engineering
-
-Advanced behavioral features were created to improve model performance:
-
-### 🧩 Engineered Features:
-
-- `total_loan_products`
-  → Total number of loan products used by customer
-
-- `total_products_owned`
-  → Total banking products owned
-
-- `engagement_gap`
-  → Difference between login activity and inactivity
-
-- `credit_utilization_change`
-  → Change in credit usage over time
-
-- `complaint_severity`
-  → Impact of unresolved complaints
-
-- `transaction_drop_indicator`
-  → Decline in transactions combined with inactivity
+```bash
+graphs/
+```
 
 ---
 
-# 🧹 3. Data Preprocessing Pipeline
+# 🧹 2. Data Cleaning & Preprocessing
 
-A production-grade pipeline using `sklearn`:
+### Data Cleaning
 
-### Numeric Features:
-- Missing values → Median Imputation
-- Scaling → StandardScaler
+- Missing values handled using median imputation
+- Duplicate records checked and removed
+- Irrelevant identifiers like `customer_id` excluded
+- Dataset consistency validation performed
 
-### Categorical Features:
-- Missing values → Most frequent value
-- Encoding → OneHotEncoder
+### Preprocessing
 
-### Pipeline System:
-- ColumnTransformer used to combine both transformations
-- Fully integrated into ML pipeline
+- One-hot encoding for categorical features
+- Binary encoding for gender
+- StandardScaler used for feature normalization
+- Stratified train-test split applied
+
+### Outcome
+
+A clean and machine-learning-ready dataset prepared for robust model training and evaluation.
+
+---
+
+# ⚙️ 3. Feature Engineering
+
+Advanced behavioral and banking-related features were created to improve predictive performance.
+
+### 🧩 Engineered Features
+
+### `total_loan_products`
+Total loan products used by the customer.
+
+### `total_products_owned`
+Total banking products owned.
+
+### `engagement_gap`
+Difference between login activity and inactivity.
+
+### `complaint_severity`
+Combined impact of complaints and unresolved complaints.
+
+These engineered features helped improve churn detection performance significantly.
 
 ---
 
 # 🤖 4. Machine Learning Models Used
 
-Multiple models were trained and compared:
+Multiple models were trained and evaluated.
 
-### Linear Models
+## 📌 Models Implemented
+
+### Linear Model
 - Logistic Regression
 
 ### Tree-Based Models
 - Decision Tree
 - Random Forest
-- Extra Trees
-- Gradient Boosting
-- AdaBoost
-- HistGradient Boosting
-
-### Other Models
-- K-Nearest Neighbors
-- Gaussian Naive Bayes
-- Support Vector Machine
-- Multi-Layer Perceptron (Neural Network)
-- Bagging Classifier
+- Hist Gradient Boosting
 
 ---
 
-# 📏 5. Evaluation Strategy
+# 🏆 5. Best Model Selected
 
-Instead of focusing only on accuracy, this project is optimized for **business impact**.
+## ✅ Hist Gradient Boosting Classifier
 
-### 🎯 Key Metrics:
-- Recall (MOST IMPORTANT)
-- F2 Score (highest priority metric)
+The best-performing model selected based on:
+
+- Recall
+- F2-score
+- ROC-AUC
+- Business impact
+
+### Why This Model?
+
+Hist Gradient Boosting achieved:
+
+- Excellent churn detection
+- Near-perfect class separation
+- Strong recall-focused performance
+- High real-world reliability
+
+---
+
+# 📏 6. Evaluation Strategy
+
+Instead of focusing only on accuracy, the project prioritizes **business-oriented evaluation metrics**.
+
+## 🎯 Key Metrics
+
+- Accuracy
 - Precision
+- Recall
 - F1 Score
+- F2 Score
 - ROC-AUC
 - PR-AUC
 
-### 🎯 Why F2 Score?
-F2 gives more weight to **recall**, which is critical because:
+---
 
-> Missing a churn customer is more costly than incorrectly predicting churn.
+# 🎯 Why Recall & F2 Score Matter
+
+In churn prediction:
+
+> Missing a churn customer is much more costly than incorrectly predicting churn.
+
+Therefore:
+
+- Recall was prioritized
+- F2-score used as the main optimization metric
+- False negatives minimized aggressively
 
 ---
 
-# 🎯 Threshold Optimization
+# 📊 7. Final Model Performance
 
-Instead of default 0.5 threshold:
-
-
-Optimal Threshold = 0.35
-
-
-This helps:
-- Catch more churn customers
-- Improve recall significantly
-- Reduce false negatives
-
----
-
-# 🏆 6. Best Model Selection
-
-- All models are evaluated on F2-score
-- Best performing model is automatically selected
-- Saved as:
-
-
-models/best_model.pkl
-
+| Metric | Score |
+|---|---|
+| Accuracy | 0.9975 |
+| Precision | 1.0000 |
+| Recall | 0.9847 |
+| F1-Score | 0.9923 |
+| F2-Score | 0.9877 |
+| ROC-AUC | 0.9999 |
+| PR-AUC | 0.9998 |
 
 ---
 
-# 📊 7. Outputs Generated
+# 📉 8. Confusion Matrix Interpretation
 
-## 📁 Graphs (`/graphs`)
+| | Predicted Stayed | Predicted Churned |
+|---|---|---|
+| Actual Stayed | 1360 | 0 |
+| Actual Churned | 4 | 257 |
+
+### Key Observations
+
+- Only **4 churn customers were missed**
+- **0 false positives** generated
+- The model captures almost all churners successfully
+- Extremely strong separation capability observed
+
+---
+
+# ⚠️ 9. Business Cost Analysis
+
+### Cost Assumptions
+
+- False Negative → ₹40,000 loss
+- False Positive → ₹500 retention cost
+
+### Business Outcome
+
+- False Negatives = 4 → ₹1,60,000 potential loss
+- False Positives = 0 → ₹0 unnecessary retention spending
+
+### Why Recall Was Prioritized
+
+The financial impact of missing a churn customer is significantly higher than wrongly targeting a retained customer.
+
+Therefore, maximizing Recall becomes critical for reducing revenue leakage.
+
+---
+
+# 📤 10. Prediction Generation System
+
+Performed in:
+
+```bash
+notebooks/generate_predictions.py
+```
+
+### Generated Output
+
+The system generates predictions for all test customers.
+
+### Output Columns
+
+| customer_id | churn_prediction | churn_probability |
+|---|---|---|
+| 1001 | 1 | 0.92 |
+| 1002 | 0 | 0.08 |
+
+### Final Result
+
+- Predictions generated for **2026 customers**
+- Risk probabilities assigned to each customer
+
+Outputs saved in:
+
+```bash
+outputs/predictions.csv
+```
+
+---
+
+# 📊 11. Outputs Generated
+
+## 📁 Graphs (`graphs/`)
+
 - churn_distribution.png
-- age_vs_churn.png
 - balance_vs_churn.png
-- engagement plots
+- digital_engagement_vs_churn.png
+- complaints_vs_churn.png
+- satisfaction_vs_churn.png
 - confusion_matrix.png
 - roc_curve.png
 - feature_importance.png
+- heatmap.png
+- age_distribution.png
+- age_vs_churn.png
+- balance_distribution.png
+- credit_utilization_vs_churn
+- inactive_days_vs_churn
+- last_login_vs_churn
+- retention_offer_vs_churn
 
 ---
 
-## 📁 Outputs (`/outputs`)
+## 📁 Outputs (`outputs/`)
 
-- model_comparison.csv → All model metrics
-- feature_importance.csv → Top features
-- final_metrics.json → Final evaluation results
-- classification_report.txt → Precision/Recall report
-- ChurnZero_Team_Predictions.csv → Final predictions
+- Predictions.csv
 
 ---
 
-## 🤖 Model Artifact
+## 📁 Models (`models/`)
 
-
-models/best_model.pkl
-
-
----
-
-# 📈 8. Final Prediction System
-
-The trained model generates predictions:
-
-### Output Format:
-
-| customer_id | churn_prediction | churn_probability |
-|-------------|------------------|-------------------|
-| 101         | 1                | 0.87              |
-| 102         | 0                | 0.12              |
+- best_model.pkl
+- scaler.pkl
 
 ---
 
-# 🧠 9. Business Impact
+# 📈 12. Business Insights
 
-This system enables banks to:
+### Customer Behavior Insights
 
-- Identify customers likely to leave
-- Reduce churn rate significantly
-- Improve customer retention strategy
-- Target customers with personalized offers
-- Increase long-term revenue stability
+- Customers with low engagement are more likely to churn
+- Complaint history strongly correlates with churn
+- Financial inactivity is a major churn indicator
+- Declining balances increase churn probability
+
+### Strategic Value
+
+The system helps banks:
+
+- Identify at-risk customers early
+- Improve retention campaigns
+- Reduce customer attrition
+- Improve long-term revenue stability
 
 ---
 
-# ⚙️ 10. Tech Stack
+# 🚀 13. Future Improvements
 
-### Programming Language:
+### Planned Enhancements
+
+- Deep Learning models
+- Real-time churn prediction
+- Explainable AI integration
+- Time-series behavioral analysis
+- Cloud deployment pipeline
+
+---
+
+# ⚙️ 14. Tech Stack
+
+## Programming Language
 - Python 3.10+
 
-### Libraries:
+## Libraries Used
+
 - pandas
 - numpy
 - matplotlib
@@ -278,80 +401,119 @@ This system enables banks to:
 
 ---
 
-# 🏗️ 11. Project Structure
+# 🏗️ 15. Project Structure
 
 ```bash
 project-root/
 │
 ├── data/
-│ ├── ChurnZero_Dataset_v1.csv
-│ ├── ChurnZero_Test_v1.csv
+│   ├── ChurnZero_dataset_v1.csv
+│   ├── ChurnZero_test_v1.csv
 │
 ├── graphs/
+│
 ├── models/
+│
 ├── outputs/
+│
 ├── notebooks/
-│ ├── eda.py
-│ ├── model_training.py
+│   ├── eda.py
+│   ├── model_training.py
+│   ├── generate_predictions.py
+│
 ├── README.md
 ```
 
 ---
 
-# 🚀 12. How to Run
+# ▶️ 16. How to Run the Project
 
+## STEP 1 — Open Project Folder
 
 ```bash
-STEP 1: First go to the project folder
 cd "C:\Users\rootuser\OneDrive\Desktop\churn_project"
-
-Wait until the terminal shows the project path again, then run STEP 2.
-
-STEP 2: Run preprocessing and EDA first
-python notebooks\eda.py
-
-Wait until it finishes and prints: Saved processed dataset
-Then run STEP 3.
-
-STEP 3: Run model training
-python notebooks\model_training.py
-
-Wait until it finishes and saves: models/best_model.pkl
-Then run STEP 4.
-
-STEP 4: Check final best model metrics
-type outputs\final_metrics.json
-
-Then run STEP 5.
-
-STEP 5: Check all model comparison results
-type outputs\model_comparison.csv
-
-Then run STEP 6.
-
-STEP 6: Test if saved model loads and predicts correctly
-python -c "import joblib,pandas as pd; model=joblib.load('models/best_model.pkl'); df=pd.read_csv('data/ChurnZero_dataset_v1.csv').drop(columns=['customer_id','churn']).head(1); df['total_loan_products']=df['personal_loan_flag']+df['home_loan_flag']+df['auto_loan_flag']; df['total_products_owned']=df['savings_account_flag']+df['current_account_flag']+df['credit_card_flag']+df['investment_product_flag']+df['insurance_product_flag']; df['engagement_gap']=df['mobile_app_login_count']-df['last_login_days']; df['credit_utilization_change']=df['credit_utilization_6m_avg']-df['credit_utilization_3m_avg']; df['complaint_severity']=df['total_complaints']*df['unresolved_complaint_count']; df['transaction_drop_indicator']=df['balance_decline_percentage']*df['account_inactive_days']; print('Prediction:',model.predict(df)); print('Probability:',model.predict_proba(df)[:,1])"
-
-STEP 7: Confirm model, graph, and output files exist
-dir models
-dir graphs
-dir outputs
 ```
-# 🔥 13. Key Highlights
-End-to-end ML pipeline (EDA → Training → Prediction)
-Feature engineering for behavioral intelligence
-Multi-model training system
-F2-score optimized evaluation strategy
-Automated best model selection
-Production-ready ML workflow
-Threshold tuning for real-world performance
 
+---
 
-# 📌 14. Conclusion
+## STEP 2 — Run EDA & Preprocessing
 
-This project demonstrates a complete machine learning system for customer churn prediction with strong emphasis on:
+```bash
+python notebooks\eda.py
+```
 
-Real-world business impact
-Model interpretability
-Performance optimization for recall
-Scalable ML pipeline design
+This will:
+- Perform EDA
+- Generate graphs
+- Clean & preprocess data
+- Save processed dataset
+
+---
+
+## STEP 3 — Run Model Training
+
+```bash
+python notebooks\model_training.py
+```
+
+This will:
+- Train multiple ML models
+- Compare performance
+- Select best model
+- Generate reports & graphs
+- Save trained model
+
+---
+
+## STEP 4 — Generate Predictions
+
+```bash
+python notebooks\generate_predictions.py
+```
+
+This will:
+- Load saved best model
+- Predict churn for test customers
+- Generate probability scores
+- Save prediction reports
+
+---
+
+## STEP 5 — Check Final Outputs
+
+### View Predictions
+
+```bash
+type outputs\Predictions.csv
+```
+
+---
+
+# 🔥 17. Key Highlights
+
+✅ End-to-end ML pipeline  
+✅ Advanced EDA & visualization  
+✅ Feature engineering  
+✅ Multi-model comparison system  
+✅ Recall & F2-score optimized  
+✅ Business-oriented evaluation  
+✅ Automated prediction generation  
+✅ Production-style workflow  
+✅ Reproducible ML architecture  
+✅ Banking-focused churn analytics  
+
+---
+
+# 📌 18. Conclusion
+
+This project demonstrates a complete production-oriented machine learning pipeline for banking customer churn prediction.
+
+The system combines:
+
+- Strong predictive performance
+- Business-driven evaluation
+- Automated workflows
+- Advanced preprocessing
+- Real-world churn analytics
+
+By prioritizing Recall and minimizing false negatives, the project effectively supports proactive customer retention strategies and helps reduce long-term revenue leakage in banking environments.
