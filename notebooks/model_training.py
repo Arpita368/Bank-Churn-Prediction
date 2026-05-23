@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -48,6 +49,15 @@ Path("graphs").mkdir(exist_ok=True)
 Path("models").mkdir(exist_ok=True)
 
 Path("outputs").mkdir(exist_ok=True)
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+GRAPHS_DIR = PROJECT_ROOT / "graphs"
+
+MODELS_DIR = PROJECT_ROOT / "models"
+
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 
 # =====================================
 # LOAD DATA
@@ -701,6 +711,62 @@ test['complaint_severity'] = (
     test['unresolved_complaint_count']
 )
 
+# ---------------------------------------------------
+# FEATURE IMPORTANCE
+# ---------------------------------------------------
+
+try:
+
+    result = permutation_importance(
+        best_model,
+        X_test,
+        y_test,
+        scoring="roc_auc",
+        n_repeats=5,
+        random_state=42,
+        n_jobs=1
+    )
+
+    importance_df = pd.DataFrame({
+
+        "feature": X_test.columns,
+
+        "importance": result.importances_mean
+
+    })
+
+    importance_df.sort_values(
+        by="importance",
+        ascending=False,
+        inplace=True
+    )
+
+    importance_df.to_csv(
+        OUTPUTS_DIR / "feature_importance.csv",
+        index=False
+    )
+
+    plt.figure(figsize=(10, 6))
+
+    sns.barplot(
+        data=importance_df.head(10),
+        x="importance",
+        y="feature"
+    )
+
+    plt.title("Top 10 Important Features")
+
+    plt.savefig(
+        GRAPHS_DIR / "feature_importance.png",
+        dpi=300
+    )
+    plt.show()
+    plt.close()
+
+except Exception as e:
+
+    print(f"Feature importance failed: {e}")
+    
 # =====================================
 # TEST PREPROCESSING
 # =====================================
