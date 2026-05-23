@@ -1,381 +1,209 @@
+# =====================================
 # model_training.py
+# =====================================
 
 from pathlib import Path
 import json
-import os
 import warnings
 
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
-os.environ.setdefault("MKL_NUM_THREADS", "1")
-os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
-os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
-
 import joblib
-import matplotlib
-
-matplotlib.use("Agg")
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from sklearn.ensemble import (
-    AdaBoostClassifier,
-    BaggingClassifier,
-    ExtraTreesClassifier,
-    GradientBoostingClassifier,
-    HistGradientBoostingClassifier,
     RandomForestClassifier,
+    HistGradientBoostingClassifier
 )
 
-from sklearn.inspection import permutation_importance
-
 from sklearn.linear_model import LogisticRegression
+
+from sklearn.tree import DecisionTreeClassifier
 
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
     confusion_matrix,
     ConfusionMatrixDisplay,
-    f1_score,
-    fbeta_score,
     precision_score,
     recall_score,
+    f1_score,
+    fbeta_score,
     roc_auc_score,
     roc_curve,
-    average_precision_score,
+    average_precision_score
 )
 
-from sklearn.model_selection import (
-    train_test_split,
-)
-
-from sklearn.naive_bayes import GaussianNB
-
-from sklearn.neighbors import KNeighborsClassifier
-
-from sklearn.neural_network import MLPClassifier
-
-from sklearn.pipeline import Pipeline
-
-from sklearn.preprocessing import (
-    OneHotEncoder,
-    StandardScaler,
-)
-
-from sklearn.impute import SimpleImputer
-
-from sklearn.compose import make_column_selector
-
-from sklearn.svm import SVC
-
-from sklearn.tree import DecisionTreeClassifier
-
+# =====================================
+# SETTINGS
+# =====================================
 
 warnings.filterwarnings("ignore")
 
+Path("graphs").mkdir(exist_ok=True)
 
-# ---------------------------------------------------
-# PATHS
-# ---------------------------------------------------
+Path("models").mkdir(exist_ok=True)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+Path("outputs").mkdir(exist_ok=True)
 
-TRAIN_PATH = PROJECT_ROOT / "data" / "ChurnZero_Dataset_v1.csv"
-
-TEST_PATH = PROJECT_ROOT / "data" / "ChurnZero_Test_v1.csv"
-
-GRAPHS_DIR = PROJECT_ROOT / "graphs"
-
-MODELS_DIR = PROJECT_ROOT / "models"
-
-OUTPUTS_DIR = PROJECT_ROOT / "outputs"
-
-
-GRAPHS_DIR.mkdir(exist_ok=True)
-
-MODELS_DIR.mkdir(exist_ok=True)
-
-OUTPUTS_DIR.mkdir(exist_ok=True)
-
-
-# ---------------------------------------------------
+# =====================================
 # LOAD DATA
-# ---------------------------------------------------
+# =====================================
 
-print("Loading datasets...")
+print("Loading dataset...\n")
 
-train_df = pd.read_csv(TRAIN_PATH)
+df = pd.read_csv(
+    "data/ChurnZero_dataset_v1.csv"
+)
 
-test_df = pd.read_csv(TEST_PATH)
+print("Dataset Shape:")
+print(df.shape)
 
+print("\nFirst 5 Rows:")
+print(df.head())
 
-print("\nTrain Shape:")
-print(train_df.shape)
+print("\nMissing Values:")
+print(df.isnull().sum())
 
-print("\nTest Shape:")
-print(test_df.shape)
+# =====================================
+# TARGET + FEATURES
+# =====================================
 
+y = df['churn']
 
-# ---------------------------------------------------
-# FEATURES
-# ---------------------------------------------------
+X = df.drop(
+    ['customer_id', 'churn'],
+    axis=1
+)
 
-TARGET_COLUMN = "churn"
-
-ID_COLUMN = "customer_id"
-
-
-X = train_df.drop(columns=[TARGET_COLUMN])
-
-y = train_df[TARGET_COLUMN]
-
-test_ids = test_df[[ID_COLUMN]]
-
-X_submission = test_df.copy()
-
-
-# ---------------------------------------------------
-# DROP ID
-# ---------------------------------------------------
-
-X.drop(columns=[ID_COLUMN], inplace=True)
-
-X_submission.drop(columns=[ID_COLUMN], inplace=True)
-
-
-# ---------------------------------------------------
+# =====================================
 # FEATURE ENGINEERING
-# ---------------------------------------------------
+# =====================================
 
-def feature_engineering(df):
+X['total_loan_products'] = (
+    X['personal_loan_flag'] +
+    X['home_loan_flag'] +
+    X['auto_loan_flag']
+)
 
-    df = df.copy()
+X['total_products_owned'] = (
+    X['savings_account_flag'] +
+    X['current_account_flag'] +
+    X['credit_card_flag'] +
+    X['investment_product_flag'] +
+    X['insurance_product_flag']
+)
 
-    df["total_loan_products"] = (
-        df["personal_loan_flag"] +
-        df["home_loan_flag"] +
-        df["auto_loan_flag"]
+X['engagement_gap'] = (
+    X['mobile_app_login_count'] -
+    X['last_login_days']
+)
+
+X['complaint_severity'] = (
+    X['total_complaints'] *
+    X['unresolved_complaint_count']
+)
+
+# =====================================
+# ENCODING
+# =====================================
+
+X = pd.get_dummies(
+    X,
+    drop_first=True
+)
+
+print("\nEncoded Shape:")
+print(X.shape)
+
+# =====================================
+# HANDLE MISSING VALUES
+# =====================================
+
+X = X.fillna(
+    X.median(
+        numeric_only=True
     )
+)
 
-    df["total_products_owned"] = (
-        df["savings_account_flag"] +
-        df["current_account_flag"] +
-        df["credit_card_flag"] +
-        df["investment_product_flag"] +
-        df["insurance_product_flag"]
-    )
+print("\nRemaining Missing Values:")
+print(X.isnull().sum().sum())
 
-    df["engagement_gap"] = (
-        df["mobile_app_login_count"] -
-        df["last_login_days"]
-    )
-
-    df["credit_utilization_change"] = (
-        df["credit_utilization_6m_avg"] -
-        df["credit_utilization_3m_avg"]
-    )
-
-    df["complaint_severity"] = (
-        df["total_complaints"] *
-        df["unresolved_complaint_count"]
-    )
-
-    df["transaction_drop_indicator"] = (
-        df["balance_decline_percentage"] *
-        df["account_inactive_days"]
-    )
-
-    return df
-
-
-X = feature_engineering(X)
-
-X_submission = feature_engineering(X_submission)
-
-
-# ---------------------------------------------------
-# FEATURE TYPES
-# ---------------------------------------------------
-
-categorical_features = X.select_dtypes(
-    include=["object"]
-).columns.tolist()
-
-numeric_features = X.select_dtypes(
-    exclude=["object"]
-).columns.tolist()
-
-
-print("\nCategorical Features:")
-print(categorical_features)
-
-print("\nNumeric Features:")
-print(len(numeric_features))
-
-
-# ---------------------------------------------------
+# =====================================
 # TRAIN TEST SPLIT
-# ---------------------------------------------------
+# =====================================
 
 X_train, X_test, y_train, y_test = train_test_split(
+
     X,
     y,
-    test_size=0.2,
+
+    test_size=0.20,
+
     random_state=42,
+
     stratify=y
 )
 
+print("\nTrain Shape:")
+print(X_train.shape)
 
-# ---------------------------------------------------
-# PREPROCESSOR
-# ---------------------------------------------------
+print("\nTest Shape:")
+print(X_test.shape)
 
-numeric_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler()),
-    ]
+# =====================================
+# SCALING
+# =====================================
+
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(
+    X_train
 )
 
-categorical_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="most_frequent")),
-        (
-            "encoder",
-            OneHotEncoder(handle_unknown="ignore")
-        ),
-    ]
+X_test_scaled = scaler.transform(
+    X_test
 )
 
-preprocessor = ColumnTransformer(
-    transformers=[
-        (
-            "num",
-            numeric_transformer,
-            numeric_features
-        ),
-        (
-            "cat",
-            categorical_transformer,
-            categorical_features
-        ),
-    ]
-)
-
-
-# ---------------------------------------------------
-# PIPELINE
-# ---------------------------------------------------
-
-def build_pipeline(model):
-
-    return Pipeline(
-        steps=[
-            ("preprocessor", preprocessor),
-            ("model", model),
-        ]
-    )
-
-
-# ---------------------------------------------------
+# =====================================
 # MODELS
-# ---------------------------------------------------
+# =====================================
 
 models = {
 
-    "Logistic Regression": build_pipeline(
-        LogisticRegression(
-            max_iter=3000,
-            class_weight="balanced",
-            random_state=42
-        )
+    "Random Forest": RandomForestClassifier(
+
+        n_estimators=200,
+
+        class_weight='balanced',
+
+        random_state=42,
+
+        n_jobs=-1
     ),
 
-    "Decision Tree": build_pipeline(
-        DecisionTreeClassifier(
-            class_weight="balanced",
-            random_state=42
-        )
+    "Hist Gradient Boosting":
+    HistGradientBoostingClassifier(
+        random_state=42
     ),
 
-    "KNN": build_pipeline(
-        KNeighborsClassifier()
+    "Logistic Regression":
+    LogisticRegression(
+        max_iter=1000
     ),
 
-    "GaussianNB": build_pipeline(
-        GaussianNB()
-    ),
-
-    "SVM": build_pipeline(
-        SVC(
-            probability=True,
-            class_weight="balanced",
-            random_state=42
-        )
-    ),
-
-    "MLP": build_pipeline(
-        MLPClassifier(
-            max_iter=600,
-            early_stopping=True,
-            random_state=42
-        )
-    ),
-
-    "Random Forest": build_pipeline(
-        RandomForestClassifier(
-            n_estimators=300,
-            class_weight="balanced",
-            random_state=42,
-            n_jobs=1
-        )
-    ),
-
-    "Bagging": build_pipeline(
-        BaggingClassifier(
-            estimator=DecisionTreeClassifier(),
-            n_estimators=200,
-            random_state=42,
-            n_jobs=1
-        )
-    ),
-
-    "Extra Trees": build_pipeline(
-        ExtraTreesClassifier(
-            n_estimators=300,
-            class_weight="balanced",
-            random_state=42,
-            n_jobs=1
-        )
-    ),
-
-    "Gradient Boosting": build_pipeline(
-        GradientBoostingClassifier(
-            random_state=42
-        )
-    ),
-
-    "AdaBoost": build_pipeline(
-        AdaBoostClassifier(
-            random_state=42
-        )
-    ),
-
-    "Hist Gradient Boosting": build_pipeline(
-        HistGradientBoostingClassifier(
-            random_state=42
-        )
-    ),
+    "Decision Tree":
+    DecisionTreeClassifier(
+        random_state=42
+    )
 }
 
-
-# ---------------------------------------------------
+# =====================================
 # TRAIN MODELS
-# ---------------------------------------------------
+# =====================================
 
 results = []
 
@@ -385,500 +213,586 @@ best_model_name = ""
 
 best_f2 = 0
 
-
 print("\nTraining Models...\n")
-
 
 for name, model in models.items():
 
-    print(f"Training {name}...")
+    print(f"\n========== {name} ==========\n")
 
-    try:
+    model.fit(
+        X_train_scaled,
+        y_train
+    )
 
-        model.fit(X_train, y_train)
+    pred = model.predict(
+        X_test_scaled
+    )
 
-        y_prob = model.predict_proba(X_test)[:, 1]
+    prob = model.predict_proba(
+        X_test_scaled
+    )[:,1]
 
-        threshold = 0.35
+    accuracy = accuracy_score(
+        y_test,
+        pred
+    )
 
-        y_pred = (y_prob >= threshold).astype(int)
+    precision = precision_score(
+        y_test,
+        pred
+    )
 
-        accuracy = accuracy_score(y_test, y_pred)
+    recall = recall_score(
+        y_test,
+        pred
+    )
 
-        precision = precision_score(
+    f1 = f1_score(
+        y_test,
+        pred
+    )
+
+    f2 = fbeta_score(
+        y_test,
+        pred,
+        beta=2
+    )
+
+    roc = roc_auc_score(
+        y_test,
+        prob
+    )
+
+    pr_auc = average_precision_score(
+        y_test,
+        prob
+    )
+
+    results.append([
+
+        name,
+
+        accuracy,
+
+        precision,
+
+        recall,
+
+        f1,
+
+        f2,
+
+        roc,
+
+        pr_auc
+    ])
+
+    print(
+        "Accuracy:",
+        round(accuracy,4)
+    )
+
+    print(
+        "Precision:",
+        round(precision,4)
+    )
+
+    print(
+        "Recall:",
+        round(recall,4)
+    )
+
+    print(
+        "F1:",
+        round(f1,4)
+    )
+
+    print(
+        "F2:",
+        round(f2,4)
+    )
+
+    print(
+        "ROC AUC:",
+        round(roc,4)
+    )
+
+    print(
+        "PR AUC:",
+        round(pr_auc,4)
+    )
+
+    print("\nClassification Report:\n")
+
+    print(
+
+        classification_report(
             y_test,
-            y_pred,
-            zero_division=0
+            pred
         )
+    )
 
-        recall = recall_score(
-            y_test,
-            y_pred,
-            zero_division=0
-        )
+    if f2 > best_f2:
 
-        f1 = f1_score(
-            y_test,
-            y_pred,
-            zero_division=0
-        )
+        best_f2 = f2
 
-        f2 = fbeta_score(
-            y_test,
-            y_pred,
-            beta=2,
-            zero_division=0
-        )
+        best_model = model
 
-        roc_auc = roc_auc_score(
-            y_test,
-            y_prob
-        )
+        best_model_name = name
 
-        pr_auc = average_precision_score(
-            y_test,
-            y_prob
-        )
-
-        results.append([
-            name,
-            accuracy,
-            precision,
-            recall,
-            f1,
-            f2,
-            roc_auc,
-            pr_auc
-        ])
-
-        print(
-            f"Recall={recall:.4f} | "
-            f"F2={f2:.4f} | "
-            f"ROC-AUC={roc_auc:.4f} | "
-            f"PR-AUC={pr_auc:.4f}"
-        )
-
-        if f2 > best_f2:
-
-            best_f2 = f2
-
-            best_model = model
-
-            best_model_name = name
-
-    except Exception as e:
-
-        print(f"{name} failed: {e}")
-
-
-# ---------------------------------------------------
-# RESULTS DATAFRAME
-# ---------------------------------------------------
+# =====================================
+# MODEL COMPARISON
+# =====================================
 
 comparison_df = pd.DataFrame(
+
     results,
+
     columns=[
-        "Model",
-        "Accuracy",
-        "Precision",
-        "Recall",
-        "F1",
-        "F2",
-        "ROC_AUC",
-        "PR_AUC"
+
+        'Model',
+
+        'Accuracy',
+
+        'Precision',
+
+        'Recall',
+
+        'F1',
+
+        'F2',
+
+        'ROC_AUC',
+
+        'PR_AUC'
     ]
 )
 
-comparison_df.sort_values(
-    by="F2",
-    ascending=False,
-    inplace=True
+comparison_df = comparison_df.sort_values(
+
+    'F2',
+
+    ascending=False
 )
-# ---------------------------------------------------
-# ADD INTERPRETATION COLUMN
-# ---------------------------------------------------
 
-interpretations = []
+print("\n========== MODEL COMPARISON ==========\n")
 
-for _, row in comparison_df.iterrows():
-
-    interpretation = ""
-
-    if row["Recall"] >= 0.80:
-        interpretation += (
-            "Excellent churn detection capability. "
-        )
-
-    elif row["Recall"] >= 0.70:
-        interpretation += (
-            "Good churn detection performance. "
-        )
-
-    else:
-        interpretation += (
-            "Lower churn detection capability. "
-        )
-
-    if row["F2"] >= 0.70:
-        interpretation += (
-            "Strong recall-focused performance. "
-        )
-
-    if row["ROC_AUC"] >= 0.85:
-        interpretation += (
-            "Very strong class separation ability. "
-        )
-
-    if row["Accuracy"] >= 0.80:
-        interpretation += (
-            "High overall prediction accuracy."
-        )
-
-    interpretations.append(interpretation)
-
-comparison_df["Interpretation"] = interpretations
-
+print(comparison_df)
 
 comparison_df.to_csv(
-    OUTPUTS_DIR / "model_comparison.csv",
+
+    "outputs/model_comparison.csv",
+
     index=False
 )
 
-# ---------------------------------------------------
-# MODEL HEALTH REPORT
-# ---------------------------------------------------
+# =====================================
+# BEST MODEL
+# =====================================
 
-best_row = comparison_df.iloc[0]
-
-health_report = f"""
-MODEL HEALTH REPORT
-===============================
-
-Project:
-Bank Customer Churn Prediction
-
-Best Performing Model:
-{best_row['Model']}
-
----------------------------------------------------
-PERFORMANCE SUMMARY
----------------------------------------------------
-
-Accuracy  : {best_row['Accuracy']:.4f}
-Precision : {best_row['Precision']:.4f}
-Recall    : {best_row['Recall']:.4f}
-F1 Score  : {best_row['F1']:.4f}
-F2 Score  : {best_row['F2']:.4f}
-ROC-AUC   : {best_row['ROC_AUC']:.4f}
-PR-AUC    : {best_row['PR_AUC']:.4f}
-
----------------------------------------------------
-BUSINESS INTERPRETATION
----------------------------------------------------
-
-The model focuses on churn detection rather than
-overall accuracy because customer churn prediction
-is an imbalanced classification problem.
-
-Key Observations:
-
-1. Recall is prioritized to minimize missed churners.
-
-2. F2-score is used because it gives higher weight
-to Recall compared to Precision.
-
-3. ROC-AUC indicates strong class separation ability.
-
-4. PR-AUC confirms reliable churn identification
-performance on imbalanced data.
-
-5. Threshold tuning (0.35) improved Recall and
-reduced false negatives.
-
----------------------------------------------------
-MODEL HEALTH STATUS
----------------------------------------------------
-
-"""
-
-# HEALTH STATUS CONDITIONS
-
-if best_row["Recall"] >= 0.80:
-    health_report += "Recall Performance       : EXCELLENT\n"
-elif best_row["Recall"] >= 0.70:
-    health_report += "Recall Performance       : GOOD\n"
-else:
-    health_report += "Recall Performance       : NEEDS IMPROVEMENT\n"
-
-if best_row["ROC_AUC"] >= 0.85:
-    health_report += "ROC-AUC Performance      : EXCELLENT\n"
-elif best_row["ROC_AUC"] >= 0.75:
-    health_report += "ROC-AUC Performance      : GOOD\n"
-else:
-    health_report += "ROC-AUC Performance      : NEEDS IMPROVEMENT\n"
-
-if best_row["F2"] >= 0.70:
-    health_report += "F2-score Performance     : EXCELLENT\n"
-elif best_row["F2"] >= 0.60:
-    health_report += "F2-score Performance     : GOOD\n"
-else:
-    health_report += "F2-score Performance     : NEEDS IMPROVEMENT\n"
-
-health_report += """
----------------------------------------------------
-FINAL CONCLUSION
----------------------------------------------------
-
-The selected model demonstrates strong capability
-in identifying potential churn customers and is
-suitable for real-world churn prediction tasks.
-
-The pipeline includes:
-- Data preprocessing
-- Feature engineering
-- Model comparison
-- Threshold optimization
-- Evaluation metrics
-- Prediction generation
-
-The system is scalable and business-oriented,
-making it useful for proactive customer retention
-strategies in banking environments.
-
-===============================
-"""
-
-# SAVE REPORT
-
-with open(
-    OUTPUTS_DIR / "model_health_report.txt",
-    "w"
-) as f:
-
-    f.write(health_report)
-
-print("\nModel Health Report Saved.")
-
-print("\nModel Comparison:")
-print(comparison_df)
-
-
-# ---------------------------------------------------
-# FINAL MODEL
-# ---------------------------------------------------
-
-print(f"\nBest Model: {best_model_name}")
-
-y_prob = best_model.predict_proba(X_test)[:, 1]
-
-y_pred = (y_prob >= 0.35).astype(int)
-
-
-# ---------------------------------------------------
-# CLASSIFICATION REPORT
-# ---------------------------------------------------
-
-report = classification_report(
-    y_test,
-    y_pred
+print(
+f"\nBest Model: {best_model_name}"
 )
 
-print("\nClassification Report:")
-print(report)
+pred = best_model.predict(
+    X_test_scaled
+)
 
-with open(
-    OUTPUTS_DIR / "classification_report.txt",
-    "w"
-) as f:
+prob = best_model.predict_proba(
+    X_test_scaled
+)[:,1]
 
-    f.write(report)
-
-
-# ---------------------------------------------------
+# =====================================
 # CONFUSION MATRIX
-# ---------------------------------------------------
+# =====================================
 
 matrix = confusion_matrix(
     y_test,
-    y_pred
+    pred
 )
 
-fig, ax = plt.subplots(figsize=(6, 5))
+fig, ax = plt.subplots(figsize=(6,5))
 
 display = ConfusionMatrixDisplay(
+
     confusion_matrix=matrix,
-    display_labels=["Retained", "Churned"]
+
+    display_labels=['Stayed','Churned']
 )
 
 display.plot(
-    cmap="Blues",
-    values_format="d",
-    ax=ax,
-    colorbar=False
+    cmap='Blues',
+    ax=ax
 )
 
 plt.title(
-    f"Confusion Matrix - {best_model_name}"
+f"Confusion Matrix - {best_model_name}"
 )
 
 plt.savefig(
-    GRAPHS_DIR / "confusion_matrix.png",
-    dpi=300
+"graphs/confusion_matrix.png"
 )
 
-plt.close()
+plt.show()
 
-
-# ---------------------------------------------------
+# =====================================
 # ROC CURVE
-# ---------------------------------------------------
+# =====================================
 
 fpr, tpr, _ = roc_curve(
     y_test,
-    y_prob
+    prob
 )
 
-plt.figure(figsize=(7, 5))
+plt.figure(figsize=(7,5))
 
 plt.plot(
+
     fpr,
+
     tpr,
-    label=f"AUC = {roc_auc_score(y_test, y_prob):.4f}"
+
+    label=f"AUC = {roc_auc_score(y_test,prob):.4f}"
 )
 
-plt.plot([0, 1], [0, 1], "k--")
+plt.plot([0,1],[0,1],'k--')
 
-plt.xlabel("False Positive Rate")
+plt.xlabel(
+"False Positive Rate"
+)
 
-plt.ylabel("True Positive Rate")
+plt.ylabel(
+"True Positive Rate"
+)
 
-plt.title("ROC Curve")
+plt.title(
+"ROC Curve"
+)
 
 plt.legend()
 
 plt.savefig(
-    GRAPHS_DIR / "roc_curve.png",
-    dpi=300
+"graphs/roc_curve.png"
 )
 
-plt.close()
+plt.show()
 
-
-# ---------------------------------------------------
+# =====================================
 # FEATURE IMPORTANCE
-# ---------------------------------------------------
+# =====================================
 
-try:
+if hasattr(best_model, "feature_importances_"):
 
-    result = permutation_importance(
-        best_model,
-        X_test,
-        y_test,
-        scoring="roc_auc",
-        n_repeats=5,
-        random_state=42,
-        n_jobs=1
-    )
+    importance = pd.DataFrame({
 
-    importance_df = pd.DataFrame({
+        'Feature':X.columns,
 
-        "feature": X_test.columns,
-
-        "importance": result.importances_mean
-
+        'Importance':best_model.feature_importances_
     })
 
-    importance_df.sort_values(
-        by="importance",
-        ascending=False,
-        inplace=True
+    importance = importance.sort_values(
+
+        'Importance',
+
+        ascending=False
     )
 
-    importance_df.to_csv(
-        OUTPUTS_DIR / "feature_importance.csv",
+    print("\nTop 15 Important Features:\n")
+
+    print(
+        importance.head(15)
+    )
+
+    importance.to_csv(
+
+        "outputs/feature_importance.csv",
+
         index=False
     )
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10,6))
 
     sns.barplot(
-        data=importance_df.head(10),
-        x="importance",
-        y="feature"
+
+        data=importance.head(10),
+
+        x='Importance',
+
+        y='Feature'
     )
 
-    plt.title("Top 10 Important Features")
+    plt.title(
+    "Top 10 Important Features"
+    )
 
     plt.savefig(
-        GRAPHS_DIR / "feature_importance.png",
-        dpi=300
+    "graphs/feature_importance.png"
     )
 
-    plt.close()
+    plt.show()
 
-except Exception as e:
-
-    print(f"Feature importance failed: {e}")
-
-
-# ---------------------------------------------------
+# =====================================
 # SAVE MODEL
-# ---------------------------------------------------
+# =====================================
 
 joblib.dump(
+
     best_model,
-    MODELS_DIR / "best_model.pkl"
+
+    "models/best_model.pkl"
 )
 
+print(
+"\nBest model saved!"
+)
 
-# ---------------------------------------------------
-# GENERATE TEST PREDICTIONS
-# ---------------------------------------------------
+# =====================================
+# SAVE SCALER
+# =====================================
 
-print("\nGenerating Predictions...")
+joblib.dump(
+
+    scaler,
+
+    "models/scaler.pkl"
+)
+
+print(
+"Scaler saved!"
+)
+
+# =====================================
+# FINAL METRICS
+# =====================================
+
+metrics = {
+
+    "Best_Model":best_model_name,
+
+    "Accuracy":float(
+        accuracy_score(y_test,pred)
+    ),
+
+    "Precision":float(
+        precision_score(y_test,pred)
+    ),
+
+    "Recall":float(
+        recall_score(y_test,pred)
+    ),
+
+    "F1":float(
+        f1_score(y_test,pred)
+    ),
+
+    "F2":float(
+        fbeta_score(y_test,pred,beta=2)
+    ),
+
+    "ROC_AUC":float(
+        roc_auc_score(y_test,prob)
+    )
+}
+
+with open(
+    "outputs/final_metrics.json",
+    "w"
+) as f:
+
+    json.dump(
+        metrics,
+        f,
+        indent=4
+    )
+
+print("\nFinal metrics saved!")
+
+# =====================================
+# MODEL HEALTH REPORT
+# =====================================
+
+health_report = f"""
+
+MODEL HEALTH REPORT
+==============================
+
+Best Model:
+{best_model_name}
+
+--------------------------------
+
+Accuracy  : {metrics['Accuracy']:.4f}
+Precision : {metrics['Precision']:.4f}
+Recall    : {metrics['Recall']:.4f}
+F1 Score  : {metrics['F1']:.4f}
+F2 Score  : {metrics['F2']:.4f}
+ROC-AUC   : {metrics['ROC_AUC']:.4f}
+
+--------------------------------
+
+Business Interpretation:
+
+- Recall is prioritized because
+  churn prediction is an
+  imbalanced classification task.
+
+- F2 score gives more importance
+  to Recall.
+
+- ROC-AUC shows strong
+  class separation ability.
+
+- The model can help identify
+  high-risk customers early.
+
+==============================
+"""
+
+with open(
+    "outputs/model_health_report.txt",
+    "w"
+) as f:
+
+    f.write(
+        health_report
+    )
+
+print(
+"\nHealth report saved!"
+)
+
+# =====================================
+# LOAD TEST DATA
+# =====================================
+
+print("\nLoading test dataset...\n")
+
+test = pd.read_csv(
+    "data/ChurnZero_test_v1.csv"
+)
+
+test_ids = test['customer_id']
+
+# =====================================
+# FEATURE ENGINEERING ON TEST
+# =====================================
+
+test['total_loan_products'] = (
+    test['personal_loan_flag'] +
+    test['home_loan_flag'] +
+    test['auto_loan_flag']
+)
+
+test['total_products_owned'] = (
+    test['savings_account_flag'] +
+    test['current_account_flag'] +
+    test['credit_card_flag'] +
+    test['investment_product_flag'] +
+    test['insurance_product_flag']
+)
+
+test['engagement_gap'] = (
+    test['mobile_app_login_count'] -
+    test['last_login_days']
+)
+
+test['complaint_severity'] = (
+    test['total_complaints'] *
+    test['unresolved_complaint_count']
+)
+
+# =====================================
+# TEST PREPROCESSING
+# =====================================
+
+test_X = test.drop(
+    ['customer_id'],
+    axis=1
+)
+
+test_X = pd.get_dummies(
+    test_X,
+    drop_first=True
+)
+
+test_X = test_X.reindex(
+    columns=X.columns,
+    fill_value=0
+)
+
+test_X = test_X.fillna(
+    test_X.median(
+        numeric_only=True
+    )
+)
+
+# =====================================
+# SCALE TEST DATA
+# =====================================
+
+test_scaled = scaler.transform(
+    test_X
+)
+
+# =====================================
+# PREDICT TEST DATA
+# =====================================
 
 submission_prob = best_model.predict_proba(
-    X_submission
-)[:, 1]
+    test_scaled
+)[:,1]
 
 submission_pred = (
-    submission_prob >= 0.35
+    submission_prob >= 0.5
 ).astype(int)
 
+# =====================================
+# SAVE PREDICTIONS
+# =====================================
 
 submission = pd.DataFrame({
 
-    "customer_id": test_ids["customer_id"],
+    'customer_id':test_ids,
 
-    "churn_prediction": submission_pred,
+    'churn_prediction':submission_pred,
 
-    "churn_probability": submission_prob.round(6)
-
+    'churn_probability':submission_prob
 })
 
-
 submission.to_csv(
-    OUTPUTS_DIR / "predictions.csv",
+
+    "outputs/predictions.csv",
+
     index=False
 )
 
-# ---------------------------------------------------
-# DETAILED PREDICTIONS REPORT
-# ---------------------------------------------------
+print(
+"\nPredictions saved!"
+)
 
-prediction_report = submission.copy()
+print(
+submission.head()
+)
 
-prediction_report["risk_level"] = prediction_report[
-    "churn_probability"
+# =====================================
+# DETAILED BUSINESS REPORT
+# =====================================
+
+submission['risk_level'] = submission[
+    'churn_probability'
 ].apply(
+
     lambda x:
+
     "High Risk" if x >= 0.75 else
+
     "Medium Risk" if x >= 0.45 else
+
     "Low Risk"
 )
 
-prediction_report["business_action"] = prediction_report[
-    "risk_level"
+submission['business_action'] = submission[
+    'risk_level'
 ].map({
 
     "High Risk":
@@ -891,86 +805,43 @@ prediction_report["business_action"] = prediction_report[
     "Regular customer relationship maintenance"
 })
 
-prediction_report["prediction_interpretation"] = prediction_report[
-    "churn_prediction"
-].map({
+submission.to_csv(
 
-    1:
-    "Customer is likely to churn based on behavioral patterns",
+    "outputs/detailed_predictions_report.csv",
 
-    0:
-    "Customer is likely to remain with the bank"
-})
-
-prediction_report.to_csv(
-    OUTPUTS_DIR / "detailed_predictions_report.csv",
     index=False
 )
 
-print("\nDetailed Predictions Report Saved.")
+print(
+"\nDetailed prediction report saved!"
+)
 
-# ---------------------------------------------------
-# FINAL METRICS
-# ---------------------------------------------------
+# =====================================
+# COMPLETED
+# =====================================
 
-metrics = {
+print("\n========== ALL TASKS COMPLETED ==========\n")
 
-    "Best_Model": best_model_name,
+print("Saved Files:")
 
-    "Accuracy": float(
-        accuracy_score(y_test, y_pred)
-    ),
+print("- models/best_model.pkl")
 
-    "Precision": float(
-        precision_score(y_test, y_pred)
-    ),
+print("- models/scaler.pkl")
 
-    "Recall": float(
-        recall_score(y_test, y_pred)
-    ),
+print("- outputs/model_comparison.csv")
 
-    "F1": float(
-        f1_score(y_test, y_pred)
-    ),
+print("- outputs/final_metrics.json")
 
-    "F2": float(
-        fbeta_score(y_test, y_pred, beta=2)
-    ),
+print("- outputs/predictions.csv")
 
-    "ROC_AUC": float(
-        roc_auc_score(y_test, y_prob)
-    ),
+print("- outputs/detailed_predictions_report.csv")
 
-    "PR_AUC": float(
-        average_precision_score(y_test, y_prob)
-    )
-}
+print("- outputs/model_health_report.txt")
 
-
-with open(
-    OUTPUTS_DIR / "final_metrics.json",
-    "w"
-) as f:
-
-    json.dump(
-        metrics,
-        f,
-        indent=4
-    )
-
-
-print("\nAll Outputs Saved Successfully.")
-
-print("\nSaved Files:")
+print("- outputs/feature_importance.csv")
 
 print("- graphs/confusion_matrix.png")
+
 print("- graphs/roc_curve.png")
+
 print("- graphs/feature_importance.png")
-print("- outputs/model_comparison.csv")
-print("- outputs/feature_importance.csv")
-print("- outputs/final_metrics.json")
-print("- outputs/classification_report.txt")
-print("- outputs/predictions.csv")
-print("- models/best_model.pkl")
-print("- outputs/model_health_report.txt")
-print("- outputs/detailed_predictions_report.csv")
